@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --color-ink: #17191c;
+  --color-ink-soft: #3b3b3b;
+  --color-mute: #787878;
+  --color-grey-900: #2e2e30;
+  --color-line: #eeeeee;
+  --color-blue-600: #087bf6;
+  --color-orange-500: #ff7d0c;
+
+  --color-card-purple: #f2edff;
+  --color-card-cream: #fff9ed;
+  --color-card-blue: #edf6ff;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #ffffff;
+  color: var(--color-ink);
+}
+
+/* Claims journey scroll-pinned section */
+.claims-journey {
+  position: relative;
+}
+
+.claims-journey__pin {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.claims-journey__marker {
+  transition: left 50ms linear;
+}
