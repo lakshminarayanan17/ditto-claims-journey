@@ -88,9 +88,12 @@ export function ClaimsJourney() {
 
       if (!card1 || !card2 || !card3) return;
 
-      // Initial state: only card 1 visible
-      gsap.set(card2, { yPercent: 60, opacity: 0 });
-      gsap.set(card3, { yPercent: 60, opacity: 0 });
+      // Card-stack: card 1 sits at the bottom, cards 2 and 3 wait off-screen
+      // below and slide up to cover the one before. No opacity crossfade —
+      // each card fully covers the previous one as it lands.
+      gsap.set(card1, { yPercent: 0, zIndex: 1 });
+      gsap.set(card2, { yPercent: 110, zIndex: 2 });
+      gsap.set(card3, { yPercent: 110, zIndex: 3 });
 
       // Step labels: active is fully opaque + bold; inactive are dim + regular
       stepLabelRefs.current.forEach((el, i) => {
@@ -105,8 +108,8 @@ export function ClaimsJourney() {
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: triggerRef.current,
-          start: "top 80px", // start pin right below the sticky navbar
-          end: () => `+=${Math.max(window.innerHeight * 2.4, 1800)}`,
+          start: "top 80px", // pin sits below the 80px sticky navbar
+          end: () => `+=${Math.max(window.innerHeight * 2.6, 2000)}`,
           scrub: 1,
           pin: pinRef.current,
           pinSpacing: true,
@@ -114,7 +117,7 @@ export function ClaimsJourney() {
         },
       });
 
-      // Marker travels left → right across the stepper line
+      // Marker travels left → right across the ruler
       tl.fromTo(
         markerRef.current,
         { left: `${STEP_POSITIONS[0]}%` },
@@ -122,23 +125,26 @@ export function ClaimsJourney() {
         0,
       );
 
-      // Step labels: when marker reaches each step, that label goes bold + bright
-      // and the previous one fades back to inactive
-      tl.to(stepLabelRefs.current[0], { opacity: 0.3, fontWeight: 400, duration: 0.05 }, 0.42);
-      tl.to(stepLabelRefs.current[1], { opacity: 1, fontWeight: 700, duration: 0.05 }, 0.42);
-      tl.to(stepLabelRefs.current[1], { opacity: 0.3, fontWeight: 400, duration: 0.05 }, 0.83);
-      tl.to(stepLabelRefs.current[2], { opacity: 1, fontWeight: 700, duration: 0.05 }, 0.83);
+      // Step-label state changes happen exactly when the next card has fully
+      // covered the previous one
+      tl.to(stepLabelRefs.current[0], { opacity: 0.3, fontWeight: 400, duration: 0.04 }, 0.45);
+      tl.to(stepLabelRefs.current[1], { opacity: 1, fontWeight: 700, duration: 0.04 }, 0.45);
+      tl.to(stepLabelRefs.current[1], { opacity: 0.3, fontWeight: 400, duration: 0.04 }, 0.85);
+      tl.to(stepLabelRefs.current[2], { opacity: 1, fontWeight: 700, duration: 0.04 }, 0.85);
 
-      // Card 1 → Card 2
-      const T1 = 0.4;
-      const FADE = 0.12;
-      tl.to(card1, { yPercent: -60, opacity: 0, ease: "power1.in", duration: FADE }, T1);
-      tl.to(card2, { yPercent: 0, opacity: 1, ease: "power1.out", duration: FADE }, T1);
+      // Card 2 slides up from below to cover card 1
+      tl.to(
+        card2,
+        { yPercent: 0, ease: "power2.inOut", duration: 0.35 },
+        0.18,
+      );
 
-      // Card 2 → Card 3
-      const T2 = 0.78;
-      tl.to(card2, { yPercent: -60, opacity: 0, ease: "power1.in", duration: FADE }, T2);
-      tl.to(card3, { yPercent: 0, opacity: 1, ease: "power1.out", duration: FADE }, T2);
+      // Card 3 slides up from below to cover card 2
+      tl.to(
+        card3,
+        { yPercent: 0, ease: "power2.inOut", duration: 0.35 },
+        0.58,
+      );
     }, triggerRef);
 
     return () => ctx.revert();
@@ -185,9 +191,9 @@ export function ClaimsJourney() {
             </div>
           </div>
 
-          {/* Card stack — only one visible at a time */}
+          {/* Card stack — each card slides up from below to cover the previous */}
           <div
-            className="relative mx-auto mt-12 h-[420px] w-full max-w-[1122px]"
+            className="relative mx-auto mt-12 h-[420px] w-full max-w-[1122px] overflow-hidden rounded-[32px]"
           >
             {cards.map((card, i) => (
               <div
@@ -268,7 +274,7 @@ function Marker() {
 function JourneyCard({ card }: { card: Card }) {
   return (
     <div
-      className="grid h-full w-full overflow-hidden rounded-[32px] border border-[#fafafa] bg-white shadow-[0_1px_60px_rgba(0,0,0,0.05)]"
+      className="grid h-full w-full overflow-hidden rounded-[32px] border border-[#f0f0f0] bg-white shadow-[0_-12px_40px_-12px_rgba(15,30,60,0.08),0_2px_50px_rgba(0,0,0,0.04)]"
       style={{ gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.3fr)" }}
     >
       {/* Left side: copy */}
