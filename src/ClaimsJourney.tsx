@@ -72,8 +72,6 @@ const cards: Card[] = [
 ];
 
 const NAVBAR_HEIGHT = 80;
-const STEPPER_HEIGHT = 160; // height of sticky stepper (heading + ruler + padding)
-const CARD_STICKY_TOP = NAVBAR_HEIGHT + STEPPER_HEIGHT - 20; // small overlap with stepper bottom
 
 export function ClaimsJourney() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -85,7 +83,7 @@ export function ClaimsJourney() {
     if (!sectionRef.current) return;
 
     const ctx = gsap.context(() => {
-      // Step labels initial state: only first is active
+      // Step labels initial state — only first is active
       stepLabelRefs.current.forEach((el, i) => {
         if (el) {
           gsap.set(el, {
@@ -95,7 +93,7 @@ export function ClaimsJourney() {
         }
       });
 
-      // Orange marker glides from step 1 to step 3 across the journey scroll
+      // Orange marker glides from step 1 to step 3 across the section's scroll
       gsap.fromTo(
         markerRef.current,
         { left: `${STEP_POSITIONS[0]}%` },
@@ -104,21 +102,20 @@ export function ClaimsJourney() {
           ease: "none",
           scrollTrigger: {
             trigger: sectionRef.current,
-            start: `top ${NAVBAR_HEIGHT + STEPPER_HEIGHT / 2}px`,
+            start: `top top+=${NAVBAR_HEIGHT}`,
             end: "bottom bottom",
             scrub: true,
           },
         },
       );
 
-      // Each card has its own ScrollTrigger that flips the active step
-      // when the card reaches its sticky position (locked at top)
+      // Each card flips the active step label as it crosses the viewport center
       cardRefs.current.forEach((card, i) => {
         if (!card) return;
         ScrollTrigger.create({
           trigger: card,
-          start: `top ${CARD_STICKY_TOP + 30}px`,
-          end: `bottom ${CARD_STICKY_TOP - 30}px`,
+          start: "top 60%",
+          end: "bottom 40%",
           onToggle: (self) => {
             if (self.isActive) activateStep(i);
           },
@@ -145,67 +142,72 @@ export function ClaimsJourney() {
 
   return (
     <section ref={sectionRef} className="claims-journey relative">
-      {/* Sticky stepper — heading + ruler + marker, locks below the navbar */}
+      {/* Sticky stepper — opaque white, sits above the cards, locks below
+          the navbar. Cards scroll *underneath* it (z-index lower).
+          This is the joindawn / claims.plumhq.com pattern. */}
       <div
-        className="claims-journey__stepper sticky z-40 bg-white"
-        style={{ top: `${NAVBAR_HEIGHT}px`, height: `${STEPPER_HEIGHT}px` }}
+        className="claims-journey__stepper sticky z-30"
+        style={{ top: `${NAVBAR_HEIGHT}px` }}
       >
-        <div className="mx-auto w-full max-w-[1280px] px-10 pt-10">
-          {/* Step labels */}
-          <div className="relative h-7 select-none">
-            {steps.map((label, i) => (
-              <span
-                key={label}
-                ref={(el) => {
-                  stepLabelRefs.current[i] = el;
-                }}
-                className="absolute -translate-x-1/2 whitespace-nowrap text-[20px] text-[var(--color-ink-soft)]"
-                style={{
-                  left: `${STEP_POSITIONS[i]}%`,
-                  fontWeight: i === 0 ? 700 : 400,
-                  letterSpacing: "0.005em",
-                }}
-              >
-                {label}
-              </span>
-            ))}
-          </div>
+        <div className="bg-white pt-10 pb-8">
+          <div className="mx-auto w-full max-w-[1280px] px-10">
+            {/* Step labels */}
+            <div className="relative h-7 select-none">
+              {steps.map((label, i) => (
+                <span
+                  key={label}
+                  ref={(el) => {
+                    stepLabelRefs.current[i] = el;
+                  }}
+                  className="absolute -translate-x-1/2 whitespace-nowrap text-[20px] text-[var(--color-ink-soft)]"
+                  style={{
+                    left: `${STEP_POSITIONS[i]}%`,
+                    fontWeight: i === 0 ? 700 : 400,
+                    letterSpacing: "0.005em",
+                  }}
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
 
-          {/* Ruler line + tick marks + orange marker */}
-          <div className="relative mt-7 h-12">
-            <Ruler />
-            <div
-              ref={markerRef}
-              className="pointer-events-none absolute top-0 -translate-x-1/2"
-              style={{ left: `${STEP_POSITIONS[0]}%` }}
-            >
-              <Marker />
+            {/* Ruler line + tick marks + orange marker */}
+            <div className="relative mt-7 h-12">
+              <Ruler />
+              <div
+                ref={markerRef}
+                className="pointer-events-none absolute top-0 -translate-x-1/2"
+                style={{ left: `${STEP_POSITIONS[0]}%` }}
+              >
+                <Marker />
+              </div>
             </div>
           </div>
         </div>
+        {/* Soft fade at the very bottom of the stepper so cards visibly
+            slide *under* it instead of cutting off harshly. */}
+        <div
+          aria-hidden
+          className="pointer-events-none h-6 w-full"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0))",
+          }}
+        />
       </div>
 
-      {/* Card stack — each card is sticky at the same top, so as you scroll
-          card 2 rises from below and locks on top of card 1, then card 3
-          rises and locks on top of card 2. Real overlap, no inner frames. */}
-      <div className="claims-journey__stack relative">
+      {/* Cards stack — just flex column with vertical gap. Each card scrolls
+          up the page normally and disappears behind the sticky stepper above. */}
+      <div className="claims-journey__cards relative z-10 flex flex-col gap-[100px] pt-[60px] pb-[30vh]">
         {cards.map((card, i) => (
           <div
             key={card.id}
             ref={(el) => {
               cardRefs.current[i] = el;
             }}
-            className="claims-journey__sticky-card"
-            style={{
-              position: "sticky",
-              top: `${CARD_STICKY_TOP}px`,
-              zIndex: i + 1,
-              marginBottom: i < cards.length - 1 ? "70vh" : "30vh",
-            }}
+            className="mx-auto w-full max-w-[1122px] px-10"
           >
-            <div className="mx-auto w-full max-w-[1122px] px-10">
-              <JourneyCard card={card} />
-            </div>
+            <JourneyCard card={card} />
           </div>
         ))}
       </div>
@@ -275,7 +277,6 @@ function JourneyCard({ card }: { card: Card }) {
         boxShadow: "0 1px 250px rgba(0,0,0,0.04)",
       }}
     >
-      {/* Left side: copy */}
       <div className="flex flex-col gap-7 p-10">
         <h3 className="text-[26px] font-bold leading-[1.2] text-[var(--color-ink-soft)]">
           {card.title}
@@ -300,8 +301,10 @@ function JourneyCard({ card }: { card: Card }) {
         </ul>
       </div>
 
-      {/* Right side: colored panel */}
-      <div className="m-3 ml-0 rounded-[18px]" style={{ background: card.panelBg }}>
+      <div
+        className="m-3 ml-0 rounded-[18px]"
+        style={{ background: card.panelBg }}
+      >
         <div className="flex h-full flex-col items-center justify-center px-8 text-center">
           <div className="text-[14px] font-medium uppercase tracking-[0.16em] text-[var(--color-mute)]">
             Step preview
@@ -318,7 +321,16 @@ function JourneyCard({ card }: { card: Card }) {
 function CheckIcon() {
   return (
     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-blue-600)] text-white">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="11"
+        height="11"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <polyline points="20 6 9 17 4 12" />
       </svg>
     </span>

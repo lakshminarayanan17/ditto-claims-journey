@@ -29,19 +29,15 @@ body {
   color: var(--color-ink);
 }
 
-/* Claims journey: sticky stepper + sticky card stack.
-   Cards stack via position:sticky, so each new card scrolls up the page
-   from below and physically locks on top of the previous one. */
+/* Claims journey: sticky stepper + normally-scrolling cards underneath.
+   Same pattern as claims.plumhq.com — the stepper is sticky with a higher
+   z-index and an opaque white background, so cards visibly slide UNDER it
+   as you scroll past. Cards themselves are not sticky. */
 .claims-journey {
   position: relative;
 }
 
-.claims-journey__stack {
-  position: relative;
-  /* Container is implicitly tall via the cards' margin-bottom values */
-}
-
-.claims-journey__sticky-card {
-  /* will-change for smoother sticky transitions */
-  will-change: transform;
+.claims-journey__stepper {
+  /* Sits above the cards; opaque so cards disappear behind it */
+  background: transparent;
 }
