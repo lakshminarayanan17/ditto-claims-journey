@@ -92,18 +92,24 @@ export function ClaimsJourney() {
       gsap.set(card2, { yPercent: 60, opacity: 0 });
       gsap.set(card3, { yPercent: 60, opacity: 0 });
 
-      // Step labels: only the active one is full opacity
+      // Step labels: active is fully opaque + bold; inactive are dim + regular
       stepLabelRefs.current.forEach((el, i) => {
-        if (el) gsap.set(el, { opacity: i === 0 ? 1 : 0.3 });
+        if (el) {
+          gsap.set(el, {
+            opacity: i === 0 ? 1 : 0.3,
+            fontWeight: i === 0 ? 700 : 400,
+          });
+        }
       });
 
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: triggerRef.current,
-          start: "top top",
+          start: "top 80px", // start pin right below the sticky navbar
           end: () => `+=${Math.max(window.innerHeight * 2.4, 1800)}`,
           scrub: 1,
           pin: pinRef.current,
+          pinSpacing: true,
           anticipatePin: 1,
         },
       });
@@ -116,11 +122,12 @@ export function ClaimsJourney() {
         0,
       );
 
-      // Step labels brighten as marker reaches each step
-      tl.to(stepLabelRefs.current[0], { opacity: 0.3, duration: 0.05 }, 0.42);
-      tl.to(stepLabelRefs.current[1], { opacity: 1, duration: 0.05 }, 0.42);
-      tl.to(stepLabelRefs.current[1], { opacity: 0.3, duration: 0.05 }, 0.83);
-      tl.to(stepLabelRefs.current[2], { opacity: 1, duration: 0.05 }, 0.83);
+      // Step labels: when marker reaches each step, that label goes bold + bright
+      // and the previous one fades back to inactive
+      tl.to(stepLabelRefs.current[0], { opacity: 0.3, fontWeight: 400, duration: 0.05 }, 0.42);
+      tl.to(stepLabelRefs.current[1], { opacity: 1, fontWeight: 700, duration: 0.05 }, 0.42);
+      tl.to(stepLabelRefs.current[1], { opacity: 0.3, fontWeight: 400, duration: 0.05 }, 0.83);
+      tl.to(stepLabelRefs.current[2], { opacity: 1, fontWeight: 700, duration: 0.05 }, 0.83);
 
       // Card 1 → Card 2
       const T1 = 0.4;
@@ -153,10 +160,12 @@ export function ClaimsJourney() {
                 ref={(el) => {
                   stepLabelRefs.current[i] = el;
                 }}
-                className="absolute -translate-x-1/2 whitespace-nowrap text-[18px] font-bold text-[var(--color-ink-soft)]"
+                className="absolute -translate-x-1/2 whitespace-nowrap text-[20px] text-[var(--color-ink-soft)]"
                 style={{
                   left: `${STEP_POSITIONS[i]}%`,
-                  transition: "opacity 200ms",
+                  fontWeight: i === 0 ? 700 : 400,
+                  transition: "opacity 200ms, font-weight 200ms",
+                  letterSpacing: "0.005em",
                 }}
               >
                 {label}
@@ -230,19 +239,27 @@ function Ruler() {
 }
 
 function Marker() {
-  // Orange teardrop pointing down
+  // Orange diamond head with a thin vertical line dropping down to the ruler
   return (
     <svg
-      width="24"
-      height="32"
-      viewBox="0 0 24 32"
+      width="22"
+      height="56"
+      viewBox="0 0 22 56"
       fill="none"
       aria-hidden
-      style={{ transform: "translateY(-2px)" }}
+      style={{ transform: "translateY(-6px)" }}
     >
       <path
-        d="M12 0 L20 14 L12 32 L4 14 Z"
+        d="M11 2 L19 13 L11 24 L3 13 Z"
         fill="var(--color-orange-500)"
+      />
+      <line
+        x1="11"
+        y1="24"
+        x2="11"
+        y2="56"
+        stroke="var(--color-orange-500)"
+        strokeWidth="1.2"
       />
     </svg>
   );

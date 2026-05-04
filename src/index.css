@@ -35,12 +35,9 @@ body {
 }
 
 .claims-journey__pin {
-  height: 100vh;
+  height: calc(100vh - 80px); /* sits below the 80px sticky navbar */
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-.claims-journey__marker {
-  transition: left 50ms linear;
+  background: #ffffff;
 }
