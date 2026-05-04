@@ -5,7 +5,6 @@ function App() {
   return (
     <main className="min-h-screen w-full bg-white">
       <Navbar />
-      <div className="h-12" />
       <ClaimsJourney />
       <div className="h-[40vh]" />
     </main>

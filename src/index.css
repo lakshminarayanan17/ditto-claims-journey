@@ -29,15 +29,19 @@ body {
   color: var(--color-ink);
 }
 
-/* Claims journey scroll-pinned section */
+/* Claims journey: sticky stepper + sticky card stack.
+   Cards stack via position:sticky, so each new card scrolls up the page
+   from below and physically locks on top of the previous one. */
 .claims-journey {
   position: relative;
 }
 
-.claims-journey__pin {
-  height: calc(100vh - 80px); /* sits below the 80px sticky navbar */
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: #ffffff;
+.claims-journey__stack {
+  position: relative;
+  /* Container is implicitly tall via the cards' margin-bottom values */
+}
+
+.claims-journey__sticky-card {
+  /* will-change for smoother sticky transitions */
+  will-change: transform;
 }

@@ -71,31 +71,21 @@ const cards: Card[] = [
   },
 ];
 
+const NAVBAR_HEIGHT = 80;
+const STEPPER_HEIGHT = 160; // height of sticky stepper (heading + ruler + padding)
+const CARD_STICKY_TOP = NAVBAR_HEIGHT + STEPPER_HEIGHT - 20; // small overlap with stepper bottom
+
 export function ClaimsJourney() {
-  const triggerRef = useRef<HTMLDivElement>(null);
-  const pinRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
   const markerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const stepLabelRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
   useEffect(() => {
-    if (!triggerRef.current || !pinRef.current || !markerRef.current) return;
+    if (!sectionRef.current) return;
 
     const ctx = gsap.context(() => {
-      const card1 = cardRefs.current[0];
-      const card2 = cardRefs.current[1];
-      const card3 = cardRefs.current[2];
-
-      if (!card1 || !card2 || !card3) return;
-
-      // Card-stack: card 1 sits at the bottom, cards 2 and 3 wait far below
-      // the pin (clipped by pin's overflow:hidden) and slide up over the
-      // previous card. Each card is standalone with its own border + shadow.
-      gsap.set(card1, { yPercent: 0, zIndex: 1 });
-      gsap.set(card2, { yPercent: 220, zIndex: 2 });
-      gsap.set(card3, { yPercent: 220, zIndex: 3 });
-
-      // Step labels: active is fully opaque + bold; inactive are dim + regular
+      // Step labels initial state: only first is active
       stepLabelRefs.current.forEach((el, i) => {
         if (el) {
           gsap.set(el, {
@@ -105,59 +95,62 @@ export function ClaimsJourney() {
         }
       });
 
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: triggerRef.current,
-          start: "top 80px", // pin sits below the 80px sticky navbar
-          end: () => `+=${Math.max(window.innerHeight * 2.6, 2000)}`,
-          scrub: 1,
-          pin: pinRef.current,
-          pinSpacing: true,
-          anticipatePin: 1,
-        },
-      });
-
-      // Marker travels left → right across the ruler
-      tl.fromTo(
+      // Orange marker glides from step 1 to step 3 across the journey scroll
+      gsap.fromTo(
         markerRef.current,
         { left: `${STEP_POSITIONS[0]}%` },
-        { left: `${STEP_POSITIONS[2]}%`, ease: "none", duration: 1 },
-        0,
+        {
+          left: `${STEP_POSITIONS[2]}%`,
+          ease: "none",
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: `top ${NAVBAR_HEIGHT + STEPPER_HEIGHT / 2}px`,
+            end: "bottom bottom",
+            scrub: true,
+          },
+        },
       );
 
-      // Step-label state changes happen exactly when the next card has fully
-      // covered the previous one
-      tl.to(stepLabelRefs.current[0], { opacity: 0.3, fontWeight: 400, duration: 0.04 }, 0.45);
-      tl.to(stepLabelRefs.current[1], { opacity: 1, fontWeight: 700, duration: 0.04 }, 0.45);
-      tl.to(stepLabelRefs.current[1], { opacity: 0.3, fontWeight: 400, duration: 0.04 }, 0.85);
-      tl.to(stepLabelRefs.current[2], { opacity: 1, fontWeight: 700, duration: 0.04 }, 0.85);
-
-      // Card 2 slides up from below to cover card 1
-      tl.to(
-        card2,
-        { yPercent: 0, ease: "power2.inOut", duration: 0.35 },
-        0.18,
-      );
-
-      // Card 3 slides up from below to cover card 2
-      tl.to(
-        card3,
-        { yPercent: 0, ease: "power2.inOut", duration: 0.35 },
-        0.58,
-      );
-    }, triggerRef);
+      // Each card has its own ScrollTrigger that flips the active step
+      // when the card reaches its sticky position (locked at top)
+      cardRefs.current.forEach((card, i) => {
+        if (!card) return;
+        ScrollTrigger.create({
+          trigger: card,
+          start: `top ${CARD_STICKY_TOP + 30}px`,
+          end: `bottom ${CARD_STICKY_TOP - 30}px`,
+          onToggle: (self) => {
+            if (self.isActive) activateStep(i);
+          },
+          onEnter: () => activateStep(i),
+          onEnterBack: () => activateStep(i),
+        });
+      });
+    }, sectionRef);
 
     return () => ctx.revert();
   }, []);
 
+  function activateStep(idx: number) {
+    stepLabelRefs.current.forEach((el, i) => {
+      if (!el) return;
+      gsap.to(el, {
+        opacity: i === idx ? 1 : 0.3,
+        fontWeight: i === idx ? 700 : 400,
+        duration: 0.3,
+        overwrite: true,
+      });
+    });
+  }
+
   return (
-    <section
-      ref={triggerRef}
-      className="claims-journey relative w-full"
-      style={{ minHeight: "100vh" }}
-    >
-      <div ref={pinRef} className="claims-journey__pin">
-        <div className="mx-auto w-full max-w-[1280px] px-10 pt-14">
+    <section ref={sectionRef} className="claims-journey relative">
+      {/* Sticky stepper — heading + ruler + marker, locks below the navbar */}
+      <div
+        className="claims-journey__stepper sticky z-40 bg-white"
+        style={{ top: `${NAVBAR_HEIGHT}px`, height: `${STEPPER_HEIGHT}px` }}
+      >
+        <div className="mx-auto w-full max-w-[1280px] px-10 pt-10">
           {/* Step labels */}
           <div className="relative h-7 select-none">
             {steps.map((label, i) => (
@@ -170,7 +163,6 @@ export function ClaimsJourney() {
                 style={{
                   left: `${STEP_POSITIONS[i]}%`,
                   fontWeight: i === 0 ? 700 : 400,
-                  transition: "opacity 200ms, font-weight 200ms",
                   letterSpacing: "0.005em",
                 }}
               >
@@ -184,39 +176,44 @@ export function ClaimsJourney() {
             <Ruler />
             <div
               ref={markerRef}
-              className="claims-journey__marker pointer-events-none absolute top-0 -translate-x-1/2"
+              className="pointer-events-none absolute top-0 -translate-x-1/2"
               style={{ left: `${STEP_POSITIONS[0]}%` }}
             >
               <Marker />
             </div>
           </div>
-
-          {/* Card stack — each card is its own standalone element with its
-              own border + shadow (Figma values). They slide up from below
-              the pin and physically overlap the previous card. */}
-          <div
-            className="relative mx-auto mt-12 h-[420px] w-full max-w-[1122px]"
-          >
-            {cards.map((card, i) => (
-              <div
-                key={card.id}
-                ref={(el) => {
-                  cardRefs.current[i] = el;
-                }}
-                className="absolute inset-0 will-change-transform"
-              >
-                <JourneyCard card={card} />
-              </div>
-            ))}
-          </div>
         </div>
+      </div>
+
+      {/* Card stack — each card is sticky at the same top, so as you scroll
+          card 2 rises from below and locks on top of card 1, then card 3
+          rises and locks on top of card 2. Real overlap, no inner frames. */}
+      <div className="claims-journey__stack relative">
+        {cards.map((card, i) => (
+          <div
+            key={card.id}
+            ref={(el) => {
+              cardRefs.current[i] = el;
+            }}
+            className="claims-journey__sticky-card"
+            style={{
+              position: "sticky",
+              top: `${CARD_STICKY_TOP}px`,
+              zIndex: i + 1,
+              marginBottom: i < cards.length - 1 ? "70vh" : "30vh",
+            }}
+          >
+            <div className="mx-auto w-full max-w-[1122px] px-10">
+              <JourneyCard card={card} />
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );
 }
 
 function Ruler() {
-  // ~75 tick marks across, with the 3 step positions accented in blue
   const total = 75;
   return (
     <svg
@@ -247,7 +244,6 @@ function Ruler() {
 }
 
 function Marker() {
-  // Orange diamond head with a thin vertical line dropping down to the ruler
   return (
     <svg
       width="22"
@@ -257,10 +253,7 @@ function Marker() {
       aria-hidden
       style={{ transform: "translateY(-6px)" }}
     >
-      <path
-        d="M11 2 L19 13 L11 24 L3 13 Z"
-        fill="var(--color-orange-500)"
-      />
+      <path d="M11 2 L19 13 L11 24 L3 13 Z" fill="var(--color-orange-500)" />
       <line
         x1="11"
         y1="24"
@@ -276,11 +269,10 @@ function Marker() {
 function JourneyCard({ card }: { card: Card }) {
   return (
     <div
-      className="grid h-full w-full overflow-hidden rounded-[32px] border border-[#fafafa] bg-white"
+      className="grid h-[420px] w-full overflow-hidden rounded-[32px] border border-[#fafafa] bg-white"
       style={{
         gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.3fr)",
-        boxShadow:
-          "0 1px 250px rgba(0,0,0,0.04), 0 -8px 40px -8px rgba(15,30,60,0.08)",
+        boxShadow: "0 1px 250px rgba(0,0,0,0.04)",
       }}
     >
       {/* Left side: copy */}
