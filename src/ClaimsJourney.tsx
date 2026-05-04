@@ -88,12 +88,12 @@ export function ClaimsJourney() {
 
       if (!card1 || !card2 || !card3) return;
 
-      // Card-stack: card 1 sits at the bottom, cards 2 and 3 wait off-screen
-      // below and slide up to cover the one before. No opacity crossfade —
-      // each card fully covers the previous one as it lands.
+      // Card-stack: card 1 sits at the bottom, cards 2 and 3 wait far below
+      // the pin (clipped by pin's overflow:hidden) and slide up over the
+      // previous card. Each card is standalone with its own border + shadow.
       gsap.set(card1, { yPercent: 0, zIndex: 1 });
-      gsap.set(card2, { yPercent: 110, zIndex: 2 });
-      gsap.set(card3, { yPercent: 110, zIndex: 3 });
+      gsap.set(card2, { yPercent: 220, zIndex: 2 });
+      gsap.set(card3, { yPercent: 220, zIndex: 3 });
 
       // Step labels: active is fully opaque + bold; inactive are dim + regular
       stepLabelRefs.current.forEach((el, i) => {
@@ -191,9 +191,11 @@ export function ClaimsJourney() {
             </div>
           </div>
 
-          {/* Card stack — each card slides up from below to cover the previous */}
+          {/* Card stack — each card is its own standalone element with its
+              own border + shadow (Figma values). They slide up from below
+              the pin and physically overlap the previous card. */}
           <div
-            className="relative mx-auto mt-12 h-[420px] w-full max-w-[1122px] overflow-hidden rounded-[32px]"
+            className="relative mx-auto mt-12 h-[420px] w-full max-w-[1122px]"
           >
             {cards.map((card, i) => (
               <div
@@ -274,8 +276,12 @@ function Marker() {
 function JourneyCard({ card }: { card: Card }) {
   return (
     <div
-      className="grid h-full w-full overflow-hidden rounded-[32px] border border-[#f0f0f0] bg-white shadow-[0_-12px_40px_-12px_rgba(15,30,60,0.08),0_2px_50px_rgba(0,0,0,0.04)]"
-      style={{ gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.3fr)" }}
+      className="grid h-full w-full overflow-hidden rounded-[32px] border border-[#fafafa] bg-white"
+      style={{
+        gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.3fr)",
+        boxShadow:
+          "0 1px 250px rgba(0,0,0,0.04), 0 -8px 40px -8px rgba(15,30,60,0.08)",
+      }}
     >
       {/* Left side: copy */}
       <div className="flex flex-col gap-7 p-10">
